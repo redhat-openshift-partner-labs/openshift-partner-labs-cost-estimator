@@ -67,8 +67,6 @@ class ResourceFormatter:
                         for item in items:
                             formatted = ResourceFormatter.format_resource_with_costs(item)
                             print(formatted)
-                        
-                        total_resources += len(items)
         
         print(f"\nTotal Resources Found: {total_resources}")
     
