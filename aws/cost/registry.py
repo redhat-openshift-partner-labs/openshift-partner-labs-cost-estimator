@@ -36,6 +36,7 @@ Adding New Cost Services:
 from .explorer_service import CostExplorerService
 from .analyzer_service import CostAnalyzerService
 from .reporter_service import CostReporterService
+from .pricing_service import PricingService
 
 
 # Cost Service Registry - Add new cost services here
@@ -43,6 +44,7 @@ COST_SERVICE_REGISTRY = {
     'explorer': CostExplorerService(),
     'analyzer': CostAnalyzerService(),
     'reporter': CostReporterService(),
+    'pricing': PricingService(),
 }
 
 # Configuration for each cost service (optional)
@@ -60,6 +62,11 @@ COST_SERVICE_CONFIG = {
     'reporter': {
         'enabled': True,
         'export_formats': ['json', 'csv', 'html']
+    },
+    'pricing': {
+        'enabled': True,
+        'cache_pricing_data': True,
+        'fallback_to_estimates': True
     }
 }
 

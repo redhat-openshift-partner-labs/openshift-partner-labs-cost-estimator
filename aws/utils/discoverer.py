@@ -53,24 +53,42 @@ class AWSResourceDiscoverer:
         self,
         all_resources: Dict[str, Dict[str, List[ResourceInfo]]]
     ) -> Dict[str, Dict[str, List[ResourceInfo]]]:
-        """Enrich resources with cost information"""
+        """Enrich resources with cost information using AWS Pricing API"""
         # Initialize cost services
         explorer_service = COST_SERVICE_REGISTRY['explorer']
         analyzer_service = COST_SERVICE_REGISTRY['analyzer']
+        pricing_service = COST_SERVICE_REGISTRY['pricing']
         
         # Store cost services for later use
         self.cost_services = {
             'explorer': explorer_service,
-            'analyzer': analyzer_service
+            'analyzer': analyzer_service,
+            'pricing': pricing_service
         }
         
-        # Set up cost analyzer
-        explorer_service.client = explorer_service.get_client(self.session)
-        analyzer_service.set_explorer_service(explorer_service)
-        
-        # Validate Cost Explorer availability
-        if not self._validate_cost_explorer_availability(explorer_service):
-            print("Warning: Cost Explorer not available or not properly configured. Using estimated costs.")
+        # Set up cost analyzer with pricing service
+        try:
+            pricing_service.client = pricing_service.get_client(self.session)
+            analyzer_service.set_pricing_service(pricing_service)
+            analyzer_service.set_region(self.session.region_name or 'us-east-1')
+            
+            # Extract cluster UID from tag key for analyzer
+            if 'kubernetes.io/cluster/' in self.tag_key:
+                cluster_uid = self.tag_key.replace('kubernetes.io/cluster/', '')
+                analyzer_service.set_cluster_uid(cluster_uid)
+            
+            print("Using AWS Pricing API for accurate cost calculation")
+            
+        except Exception as e:
+            print(f"Warning: Could not initialize Pricing API: {e}")
+            print("Falling back to Cost Explorer and estimated costs")
+            
+            # Fallback to Cost Explorer
+            explorer_service.client = explorer_service.get_client(self.session)
+            analyzer_service.set_explorer_service(explorer_service)
+            
+            if not self._validate_cost_explorer_availability(explorer_service):
+                print("Warning: Cost Explorer also not available. Using estimated costs only.")
         
         # Calculate date range for cost analysis
         end_date = datetime.now()

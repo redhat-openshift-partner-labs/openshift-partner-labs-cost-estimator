@@ -42,7 +42,8 @@ class ELBService(AWSService):
                                     state=lb.get('State', {}).get('Code', 'N/A'),
                                     additional_info={
                                         'dns': lb['DNSName'],
-                                        'vpc': lb.get('VPCId', 'N/A')
+                                        'vpc': lb.get('VPCId', 'N/A'),
+                                        'resource_category': 'classic_elb'
                                     }
                                 ))
                                 break
@@ -68,7 +69,10 @@ class ELBService(AWSService):
                                     name=lb['LoadBalancerName'],
                                     type=lb['Type'],
                                     state=lb.get('State', {}).get('Code', 'N/A'),
-                                    additional_info={'arn': lb['LoadBalancerArn']}
+                                    additional_info={
+                                        'arn': lb['LoadBalancerArn'],
+                                        'resource_category': 'alb_nlb'
+                                    }
                                 ))
                                 break
         except ClientError as e:

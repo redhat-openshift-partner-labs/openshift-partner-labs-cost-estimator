@@ -33,7 +33,10 @@ class EC2Service(AWSService):
                             id=instance['InstanceId'],
                             state=instance['State']['Name'],
                             type=instance.get('InstanceType', 'N/A'),
-                            additional_info={'launch_time': instance.get('LaunchTime')}
+                            additional_info={
+                                'launch_time': instance.get('LaunchTime'),
+                                'resource_category': 'ec2_instance'
+                            }
                         ))
         except ClientError as e:
             self.handle_error(e, 'instances')
@@ -46,8 +49,12 @@ class EC2Service(AWSService):
                     resources['volumes'].append(ResourceInfo(
                         id=volume['VolumeId'],
                         state=volume['State'],
-                        type=f"{volume['Size']} GB",
-                        additional_info={'volume_type': volume.get('VolumeType')}
+                        type=f"{volume['Size']} GB {volume.get('VolumeType', 'gp2')}",
+                        additional_info={
+                            'volume_type': volume.get('VolumeType'),
+                            'size_gb': volume['Size'],
+                            'resource_category': 'ebs_volume'
+                        }
                     ))
         except ClientError as e:
             self.handle_error(e, 'volumes')
@@ -61,7 +68,10 @@ class EC2Service(AWSService):
                         id=sg['GroupId'],
                         name=sg['GroupName'],
                         type=sg.get('VpcId', 'N/A'),
-                        additional_info={'description': sg.get('Description')}
+                        additional_info={
+                            'description': sg.get('Description'),
+                            'resource_category': 'security_group'
+                        }
                     ))
         except ClientError as e:
             self.handle_error(e, 'security_groups')
@@ -75,7 +85,10 @@ class EC2Service(AWSService):
                         id=ni['NetworkInterfaceId'],
                         state=ni['Status'],
                         type=ni.get('InterfaceType', 'N/A'),
-                        additional_info={'subnet_id': ni.get('SubnetId')}
+                        additional_info={
+                            'subnet_id': ni.get('SubnetId'),
+                            'resource_category': 'network_interface'
+                        }
                     ))
         except ClientError as e:
             self.handle_error(e, 'network_interfaces')

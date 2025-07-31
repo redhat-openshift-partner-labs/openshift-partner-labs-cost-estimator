@@ -343,3 +343,5 @@ Thumbs.db
 local_settings.py
 local_config.py
 dev_settings.py
+CLAUDE.md
+.serena

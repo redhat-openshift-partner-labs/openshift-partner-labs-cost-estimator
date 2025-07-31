@@ -187,8 +187,9 @@ class TestCostAnalyzerService(unittest.TestCase):
         resources = [
             ResourceInfo(
                 id="i-1",
-                type="t3.large instance",
-                cost_data={"total_cost": 150.0}
+                type="t3.large",
+                cost_data={"total_cost": 150.0},
+                additional_info={"resource_category": "ec2_instance"}
             )
         ]
         
