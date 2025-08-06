@@ -2,7 +2,7 @@
 Enhanced AWS resource discovery orchestrator with optional cost integration.
 """
 
-from services import SERVICE_REGISTRY, SERVICE_CONFIG
+from services import SERVICE_REGISTRY, SERVICE_CONFIG, should_use_unified_discovery, should_fallback_to_individual
 from services.base import ResourceInfo
 from cost import CostExplorerService, CostAnalyzerService, CostReporterService, CostSummary
 from cost.registry import COST_SERVICE_REGISTRY
@@ -22,8 +22,58 @@ class AWSResourceDiscoverer:
         self.cost_services: Optional[Dict[str, Any]] = None
     
     def discover_all_resources(self, include_costs: bool = False) -> Dict[str, Dict[str, List[ResourceInfo]]]:
-        """Discover resources across all registered services with optional cost integration"""
+        """Discover resources using unified or modular approach with optional cost integration"""
+        
+        # Check if unified discovery should be used
+        if should_use_unified_discovery():
+            print("Using unified resource discovery via ResourceGroups API...")
+            try:
+                self.results = self._unified_discovery()
+            except Exception as e:
+                print(f"Unified discovery failed: {e}")
+                if should_fallback_to_individual():
+                    print("Falling back to individual service discovery...")
+                    self.results = self._modular_discovery()
+                else:
+                    raise e
+        else:
+            print("Using modular service discovery...")
+            self.results = self._modular_discovery()
+        
+        # Optional cost enrichment
+        if include_costs:
+            self.results = self._enrich_with_costs(self.results)
+        
+        return self.results
+    
+    def _unified_discovery(self) -> Dict[str, Dict[str, List[ResourceInfo]]]:
+        """Discover resources using ResourceGroups API (unified approach)"""
+        resource_groups_service = SERVICE_REGISTRY.get('ResourceGroups')
+        if not resource_groups_service:
+            raise Exception("ResourceGroups service not found in registry")
+        
+        client = resource_groups_service.get_client(self.session)
+        unified_results = resource_groups_service.search_resources(
+            client, self.tag_key, self.tag_value
+        )
+        
+        # If resource enrichment is enabled, fetch additional details
+        rg_config = SERVICE_CONFIG.get('ResourceGroups', {})
+        if rg_config.get('enrich_resources', False):
+            unified_results = self._enrich_unified_results(unified_results, resource_groups_service)
+        
+        # Return results in the expected format (single service with all resource types)
+        return {'ResourceGroups': unified_results}
+    
+    def _modular_discovery(self) -> Dict[str, Dict[str, List[ResourceInfo]]]:
+        """Discover resources using individual service modules (original approach)"""
+        results = {}
+        
         for service_name, service in SERVICE_REGISTRY.items():
+            # Skip ResourceGroups service in modular mode
+            if service_name == 'ResourceGroups':
+                continue
+                
             if SERVICE_CONFIG.get(service_name, {}).get('enabled', True):
                 try:
                     if service_name == 'ELB':
@@ -37,17 +87,37 @@ class AWSResourceDiscoverer:
                             client, self.tag_key, self.tag_value
                         )
                     
-                    self.results[service_name] = service_resources
+                    results[service_name] = service_resources
                     
                 except Exception as e:
                     print(f"Error discovering {service_name} resources: {e}")
-                    self.results[service_name] = {rt: [] for rt in service.resource_types}
+                    results[service_name] = {rt: [] for rt in service.resource_types}
         
-        # Optional cost enrichment
-        if include_costs:
-            self.results = self._enrich_with_costs(self.results)
+        return results
+    
+    def _enrich_unified_results(
+        self, 
+        unified_results: Dict[str, List[ResourceInfo]], 
+        resource_groups_service
+    ) -> Dict[str, List[ResourceInfo]]:
+        """Enrich unified results with additional resource details"""
+        enriched_results = {}
         
-        return self.results
+        for resource_type, resources in unified_results.items():
+            enriched_resources = []
+            for resource in resources:
+                try:
+                    enriched_resource = resource_groups_service.get_resource_details(
+                        resource, self.session
+                    )
+                    enriched_resources.append(enriched_resource)
+                except Exception as e:
+                    print(f"Warning: Could not enrich resource {resource.id}: {e}")
+                    enriched_resources.append(resource)
+            
+            enriched_results[resource_type] = enriched_resources
+        
+        return enriched_results
     
     def _enrich_with_costs(
         self,

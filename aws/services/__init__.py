@@ -38,6 +38,7 @@ from .base import AWSService, ResourceInfo
 # Export service implementations
 from .ec2_service import EC2Service
 from .elb_service import ELBService
+from .resource_groups_service import ResourceGroupsService
 
 # Export registry and configuration
 from .registry import (
@@ -45,7 +46,9 @@ from .registry import (
     SERVICE_CONFIG,
     get_available_services,
     get_service_config,
-    is_service_enabled
+    is_service_enabled,
+    should_use_unified_discovery,
+    should_fallback_to_individual
 )
 
 # Define public API
@@ -57,6 +60,7 @@ __all__ = [
     # Service implementations
     'EC2Service',
     'ELBService',
+    'ResourceGroupsService',
     
     # Registry and configuration
     'SERVICE_REGISTRY',
@@ -64,4 +68,6 @@ __all__ = [
     'get_available_services',
     'get_service_config',
     'is_service_enabled',
+    'should_use_unified_discovery',
+    'should_fallback_to_individual',
 ]

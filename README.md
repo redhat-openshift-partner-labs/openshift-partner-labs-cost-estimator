@@ -26,8 +26,10 @@ aws/
 ```
 
 ### Key Features
-- **Service Registry Pattern**: Pluggable architecture for AWS services
-- **Tag-based Discovery**: Finds resources using cluster UIDs
+- **Unified Resource Discovery**: Uses AWS Resource Groups Tagging API for efficient cross-service discovery
+- **Service Registry Pattern**: Pluggable architecture for AWS services (fallback method)
+- **Tag-based Discovery**: Finds resources using cluster UIDs across all AWS services
+- **Resource Enrichment**: Automatically enhances discovered resources with service-specific details
 - **Cost Estimation**: Optional integration with AWS Cost Explorer and Pricing APIs
 - **Modular Design**: Easy to extend with new AWS services
 - **Multiple Export Formats**: JSON, CSV, and HTML reports
@@ -83,6 +85,7 @@ pip install -r requirements.txt
         {
             "Effect": "Allow",
             "Action": [
+                "resourcegroupstaggingapi:GetResources",
                 "ec2:DescribeInstances",
                 "ec2:DescribeVolumes", 
                 "ec2:DescribeSecurityGroups",
@@ -116,14 +119,23 @@ pip install -r requirements.txt
 }
 ```
 
+**Note**: The `resourcegroupstaggingapi:GetResources` permission enables the new unified discovery method, which is more efficient than individual service discovery. The EC2 and ELB permissions are still required for resource enrichment (gathering additional details like instance types and states).
+
 ## Usage
 
 ### Basic Resource Discovery
 
-Find all AWS resources tagged with a specific OpenShift cluster UID:
+Find all AWS resources tagged with a specific OpenShift cluster UID using the unified discovery method:
 
 ```bash
 cd aws
+python main.py --cluster-uid your-cluster-uid --unified-discovery
+```
+
+Or use the traditional service-by-service discovery:
+
+```bash
+cd aws  
 python main.py --cluster-uid your-cluster-uid
 ```
 
@@ -148,7 +160,13 @@ ELB Service - load_balancers (1 found):
 
 ### Cost Estimation
 
-Include cost analysis for discovered resources:
+Include cost analysis for discovered resources using unified discovery (recommended):
+
+```bash
+python main.py --cluster-uid your-cluster-uid --include-costs --unified-discovery
+```
+
+Or with traditional discovery:
 
 ```bash
 python main.py --cluster-uid your-cluster-uid --include-costs
@@ -178,38 +196,59 @@ Top 3 Resources by Cost:
 
 ### Export Cost Reports
 
-Export detailed cost analysis to files:
+Export detailed cost analysis to files using unified discovery:
 
 ```bash
 # Export as JSON
-python main.py --cluster-uid your-cluster-uid --include-costs \
+python main.py --cluster-uid your-cluster-uid --include-costs --unified-discovery \
   --export-format json --export-file cost-report.json
 
 # Export as CSV  
-python main.py --cluster-uid your-cluster-uid --include-costs \
+python main.py --cluster-uid your-cluster-uid --include-costs --unified-discovery \
   --export-format csv --export-file cost-report.csv
 
 # Export as HTML
-python main.py --cluster-uid your-cluster-uid --include-costs \
+python main.py --cluster-uid your-cluster-uid --include-costs --unified-discovery \
   --export-format html --export-file cost-report.html
 ```
 
 ### Advanced Options
 
 ```bash
-# Specify AWS region
-python main.py --cluster-uid your-cluster-uid --region us-west-2
+# Specify AWS region with unified discovery
+python main.py --cluster-uid your-cluster-uid --region us-west-2 --unified-discovery
 
 # Custom cost analysis period (default: 30 days)
-python main.py --cluster-uid your-cluster-uid --include-costs --days 7
+python main.py --cluster-uid your-cluster-uid --include-costs --days 7 --unified-discovery
 
 # Verbose output for debugging
-python main.py --cluster-uid your-cluster-uid --verbose
+python main.py --cluster-uid your-cluster-uid --verbose --unified-discovery
+
+# Use traditional service-by-service discovery (legacy method)
+python main.py --cluster-uid your-cluster-uid --no-unified-discovery
 ```
 
 ## Resource Discovery Logic
 
-Resources are discovered by searching for the tag pattern that follows OpenShift installer tagging conventions:
+The tool supports two discovery methods:
+
+### Unified Discovery (Recommended)
+Uses the AWS Resource Groups Tagging API to discover resources across all AWS services in a single efficient API call:
+
+- **API**: `resourcegroupstaggingapi:GetResources`
+- **Coverage**: All AWS services that support tagging
+- **Efficiency**: Single API call discovers resources across services
+- **Resource Enrichment**: Automatically enriches discovered resources with service-specific details
+
+### Traditional Discovery (Legacy)
+Uses individual service APIs (EC2, ELB, etc.) for resource discovery:
+
+- **APIs**: Service-specific APIs (e.g., `ec2:DescribeInstances`, `elasticloadbalancing:DescribeLoadBalancers`)
+- **Coverage**: Limited to explicitly implemented services
+- **Efficiency**: Multiple API calls required
+
+### Tag Pattern
+Both methods search for the tag pattern that follows OpenShift installer tagging conventions:
 
 - **Tag Key**: `kubernetes.io/cluster/{cluster-uid}`
 - **Tag Value**: `owned`
@@ -305,6 +344,10 @@ class RDSService(AWSService):
 3. Add tests for new functionality
 4. Ensure all tests pass
 5. Submit a pull request
+
+## Development
+
+This codebase was built using [Claude Code](https://claude.ai/code), Anthropic's official CLI tool for Claude, which provides advanced code analysis, generation, and project management capabilities.
 
 ## License
 

@@ -35,16 +35,34 @@ Adding New Services:
 
 from .ec2_service import EC2Service
 from .elb_service import ELBService
+from .resource_groups_service import ResourceGroupsService
 
 
 # Service Registry - Add new services here
 SERVICE_REGISTRY = {
+    'ResourceGroups': ResourceGroupsService(),  # Unified resource discovery
     'EC2': EC2Service(),
     'ELB': ELBService(),
 }
 
 # Configuration for each service (optional)
 SERVICE_CONFIG = {
+    'ResourceGroups': {
+        'enabled': False,  # Start disabled for testing/gradual migration
+        'unified_discovery': True,
+        'fallback_to_individual': True,
+        'enrich_resources': False,  # Whether to fetch additional resource details
+        'resource_types': [
+            'instances', 'volumes', 'security_groups', 'network_interfaces',  # EC2
+            'classic_elbs', 'albs_nlbs', 'target_groups',  # ELB
+            'rds_instances', 'rds_clusters',  # RDS
+            's3_buckets',  # S3
+            'lambda_functions',  # Lambda
+            'iam_roles', 'iam_policies',  # IAM
+            'cloudformation_stacks',  # CloudFormation
+            'other_resources'  # Catch-all
+        ]
+    },
     'EC2': {
         'enabled': True,
         'resource_types': ['instances', 'volumes', 'security_groups', 'network_interfaces']
@@ -87,3 +105,23 @@ def is_service_enabled(service_name: str) -> bool:
         bool: True if service is enabled, False otherwise
     """
     return SERVICE_CONFIG.get(service_name, {}).get('enabled', True)
+
+
+def should_use_unified_discovery() -> bool:
+    """Check if unified discovery via ResourceGroups should be used
+    
+    Returns:
+        bool: True if ResourceGroups service is enabled and unified discovery is configured
+    """
+    rg_config = SERVICE_CONFIG.get('ResourceGroups', {})
+    return rg_config.get('enabled', False) and rg_config.get('unified_discovery', False)
+
+
+def should_fallback_to_individual() -> bool:
+    """Check if fallback to individual services is enabled when ResourceGroups fails
+    
+    Returns:
+        bool: True if fallback is enabled
+    """
+    rg_config = SERVICE_CONFIG.get('ResourceGroups', {})
+    return rg_config.get('fallback_to_individual', True)
