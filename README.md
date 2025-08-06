@@ -12,6 +12,24 @@ This tool helps you:
 
 Currently, supports **AWS** with planned support for **GCP** and **IBM Cloud**.
 
+## Version Information
+
+**Current Version**: v1.0.0 (August 6, 2025)
+
+This project follows [Semantic Versioning](https://semver.org/). For version history and release notes, see [CHANGELOG.md](CHANGELOG.md).
+
+### Latest Features (v1.0.0)
+- **Unified Resource Discovery** using AWS Resource Groups Tagging API
+- **Resource Enrichment** with service-specific details
+- **Comprehensive Cost System** with advanced aggregation and reporting
+- **Enhanced CLI** with `--unified-discovery` option
+
+### Quick Version Check
+```bash
+git tag --list  # Show all available versions
+git describe --tags  # Show current version
+```
+
 ## Architecture
 
 The project follows a modular architecture organized by cloud provider:
@@ -337,13 +355,35 @@ class RDSService(AWSService):
 - **Historical Analysis**: Trend analysis and cost forecasting
 - **Budget Alerts**: Integration with cloud-native budget monitoring
 
+## Releases
+
+### Latest Release: v1.0.0
+- **Unified Resource Discovery** using AWS Resource Groups Tagging API
+- **Resource Enrichment** with automatic service-specific details
+- **Comprehensive Cost System** with advanced aggregation
+- **Enhanced CLI** with `--unified-discovery` option
+
+### Previous Releases
+- **v0.2.0**: Enhanced cost calculation system
+- **v0.1.1**: Documentation improvements and bug fixes
+- **v0.1.0**: Initial modular framework
+
+For complete release notes, see [CHANGELOG.md](CHANGELOG.md).
+
+### Creating Releases
+This project uses GitHub Actions for release management:
+1. Go to **Actions** → **"Create Release"** → **Run workflow**
+2. Specify version (vX.Y.Z), title, and release notes
+3. Workflow automatically validates, tests, and publishes the release
+
 ## Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Add tests for new functionality
 4. Ensure all tests pass
-5. Submit a pull request
+5. Update [CHANGELOG.md](CHANGELOG.md) for significant changes
+6. Submit a pull request
 
 ## Development
 
